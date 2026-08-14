@@ -1,41 +1,153 @@
 /* =====================================================
+   GOOGLE APPS SCRIPT API
+===================================================== */
+
+const API_URL =
+    "https://script.google.com/macros/s/AKfycbyC0kBPRm8aK_wacD2b80S0lPjTsGSdyxJpa9-P9fRyL3iHHOWIH6jBpyVyD-geQtan/exec";
+
+
+/* =====================================================
    DATA
 ===================================================== */
 
-let students =
-    JSON.parse(localStorage.getItem("students")) || [];
+let students = [];
+
+let editStudentID = null;
 
 
-let editIndex = -1;
+/* =====================================================
+   INITIAL LOAD
+===================================================== */
 
+document.addEventListener("DOMContentLoaded", function () {
+
+    loadStudents();
+
+});
+
+
+/* =====================================================
+   READ FROM GOOGLE SHEETS
+===================================================== */
+
+async function loadStudents() {
+
+    try {
+
+        showMessage(
+            "Loading student records...",
+            "success"
+        );
+
+
+        const response = await fetch(
+            API_URL + "?action=get",
+            {
+                method: "GET"
+            }
+        );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to connect to Google Apps Script."
+            );
+
+        }
+
+
+        const result = await response.json();
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.message || "Failed to load students."
+            );
+
+        }
+
+
+        students = result.students || [];
+
+
+        displayStudents();
+
+
+        hideMessage();
+
+
+    } catch (error) {
+
+        console.error(
+            "LOAD ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Unable to load data from Google Sheets. Check your Apps Script URL.",
+            "error"
+        );
+
+    }
+
+}
 
 
 /* =====================================================
    CREATE
 ===================================================== */
 
-function addStudent() {
+async function addStudent() {
+
 
     const studentID =
-        document.getElementById("studentID").value.trim();
+        document
+            .getElementById("studentID")
+            .value
+            .trim();
+
 
     const firstName =
-        document.getElementById("firstName").value.trim();
+        document
+            .getElementById("firstName")
+            .value
+            .trim();
+
 
     const lastName =
-        document.getElementById("lastName").value.trim();
+        document
+            .getElementById("lastName")
+            .value
+            .trim();
+
 
     const course =
-        document.getElementById("course").value.trim();
+        document
+            .getElementById("course")
+            .value
+            .trim();
+
 
     const email =
-        document.getElementById("email").value.trim();
+        document
+            .getElementById("email")
+            .value
+            .trim();
+
 
     const yearLevel =
-        document.getElementById("yearLevel").value;
+        document
+            .getElementById("yearLevel")
+            .value;
 
 
-    // Check empty fields
+
+    /* =========================
+       VALIDATION
+    ========================= */
 
     if (
         studentID === "" ||
@@ -52,15 +164,20 @@ function addStudent() {
         );
 
         return;
+
     }
 
 
-    // Check duplicate Student ID
+
+    /* =========================
+       DUPLICATE CHECK
+    ========================= */
 
     const duplicate =
         students.some(
             student =>
-                student.studentID.toLowerCase() ===
+                String(student.studentID)
+                    .toLowerCase() ===
                 studentID.toLowerCase()
         );
 
@@ -73,12 +190,18 @@ function addStudent() {
         );
 
         return;
+
     }
 
 
-    // Create student object
+
+    /* =========================
+       DATA OBJECT
+    ========================= */
 
     const student = {
+
+        action: "add",
 
         studentID: studentID,
 
@@ -95,49 +218,137 @@ function addStudent() {
     };
 
 
-    // Add student
 
-    students.push(student);
+    /* =========================
+       SEND TO GOOGLE SHEETS
+    ========================= */
 
+    try {
 
-    // Save
-
-    saveData();
-
-
-    // Refresh table
-
-    displayStudents();
+        showMessage(
+            "Saving student...",
+            "success"
+        );
 
 
-    // Clear form
+        const result =
+            await sendToAppsScript(student);
 
-    clearForm();
+
+        if (!result.success) {
+
+            throw new Error(
+                result.message ||
+                "Failed to add student."
+            );
+
+        }
 
 
-    showMessage(
-        "Student successfully added.",
-        "success"
-    );
+
+        /* =========================
+           SUCCESS
+        ========================= */
+
+        showMessage(
+            "Student successfully added to Google Sheets.",
+            "success"
+        );
+
+
+        clearForm();
+
+
+        await loadStudents();
+
+
+    } catch (error) {
+
+        console.error(
+            "ADD ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Failed to save student: " +
+            error.message,
+            "error"
+        );
+
+    }
 
 }
 
 
-
 /* =====================================================
-   READ
+   SEND DATA TO APPS SCRIPT
 ===================================================== */
 
-function displayStudents(studentList = students) {
+async function sendToAppsScript(data) {
+
+    const response =
+        await fetch(
+            API_URL,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "text/plain;charset=utf-8"
+                },
+
+                body: JSON.stringify(data)
+            }
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "HTTP Error: " +
+            response.status
+        );
+
+    }
+
+
+    const result =
+        await response.json();
+
+
+    return result;
+
+}
+
+
+/* =====================================================
+   READ / DISPLAY
+===================================================== */
+
+function displayStudents(
+    studentList = students
+) {
+
 
     const table =
-        document.getElementById("studentTable");
+        document.getElementById(
+            "studentTable"
+        );
 
 
     table.innerHTML = "";
 
 
-    if (studentList.length === 0) {
+
+    /* =========================
+       EMPTY
+    ========================= */
+
+    if (
+        !studentList ||
+        studentList.length === 0
+    ) {
 
         table.innerHTML = `
 
@@ -156,11 +367,18 @@ function displayStudents(studentList = students) {
         `;
 
         return;
+
     }
 
 
+
+    /* =========================
+       DISPLAY RECORDS
+    ========================= */
+
     studentList.forEach(
-        (student, index) => {
+        function (student) {
+
 
             const row =
                 document.createElement("tr");
@@ -169,34 +387,34 @@ function displayStudents(studentList = students) {
             row.innerHTML = `
 
                 <td>
-                    ${student.studentID}
+                    ${escapeHTML(student.studentID)}
                 </td>
 
                 <td>
-                    ${student.firstName}
+                    ${escapeHTML(student.firstName)}
                 </td>
 
                 <td>
-                    ${student.lastName}
+                    ${escapeHTML(student.lastName)}
                 </td>
 
                 <td>
-                    ${student.course}
+                    ${escapeHTML(student.course)}
                 </td>
 
                 <td>
-                    ${student.email}
+                    ${escapeHTML(student.email)}
                 </td>
 
                 <td>
-                    ${student.yearLevel}
+                    ${escapeHTML(student.yearLevel)}
                 </td>
 
                 <td>
 
                     <button
                         class="edit-btn"
-                        onclick="editStudent(${index})">
+                        onclick="editStudent('${escapeAttribute(student.studentID)}')">
 
                         Edit
 
@@ -205,7 +423,7 @@ function displayStudents(studentList = students) {
 
                     <button
                         class="delete-btn"
-                        onclick="deleteStudent(${index})">
+                        onclick="deleteStudent('${escapeAttribute(student.studentID)}')">
 
                         Delete
 
@@ -224,94 +442,194 @@ function displayStudents(studentList = students) {
 }
 
 
-
 /* =====================================================
-   UPDATE - LOAD DATA
+   EDIT - LOAD STUDENT
 ===================================================== */
 
-function editStudent(index) {
+function editStudent(studentID) {
+
 
     const student =
-        students[index];
+        students.find(
+            function (item) {
+
+                return String(item.studentID)
+                    .toLowerCase() ===
+                    String(studentID)
+                        .toLowerCase();
+
+            }
+        );
 
 
-    document.getElementById("studentID").value =
+    if (!student) {
+
+        showMessage(
+            "Student record not found.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+
+    /* =========================
+       LOAD DATA INTO FORM
+    ========================= */
+
+    document.getElementById(
+        "studentID"
+    ).value =
         student.studentID;
 
 
-    document.getElementById("firstName").value =
+    document.getElementById(
+        "firstName"
+    ).value =
         student.firstName;
 
 
-    document.getElementById("lastName").value =
+    document.getElementById(
+        "lastName"
+    ).value =
         student.lastName;
 
 
-    document.getElementById("course").value =
+    document.getElementById(
+        "course"
+    ).value =
         student.course;
 
 
-    document.getElementById("email").value =
+    document.getElementById(
+        "email"
+    ).value =
         student.email;
 
 
-    document.getElementById("yearLevel").value =
+    document.getElementById(
+        "yearLevel"
+    ).value =
         student.yearLevel;
 
 
-    editIndex = index;
+
+    /* =========================
+       REMEMBER ORIGINAL ID
+    ========================= */
+
+    editStudentID =
+        student.studentID;
 
 
-    document.getElementById("addBtn")
-        .style.display = "none";
+
+    /* =========================
+       CHANGE BUTTONS
+    ========================= */
+
+    document.getElementById(
+        "addBtn"
+    ).style.display =
+        "none";
 
 
-    document.getElementById("updateBtn")
-        .style.display = "block";
+    document.getElementById(
+        "updateBtn"
+    ).style.display =
+        "block";
 
 
-    document.getElementById("cancelBtn")
-        .style.display = "block";
+    document.getElementById(
+        "cancelBtn"
+    ).style.display =
+        "block";
 
+
+
+    /* =========================
+       SCROLL TOP
+    ========================= */
 
     window.scrollTo({
+
         top: 0,
+
         behavior: "smooth"
+
     });
 
 }
-
 
 
 /* =====================================================
    UPDATE
 ===================================================== */
 
-function updateStudent() {
+async function updateStudent() {
 
-    if (editIndex === -1) {
+
+    if (
+        editStudentID === null
+    ) {
+
+        showMessage(
+            "No student selected for update.",
+            "error"
+        );
+
         return;
+
     }
 
 
+
     const studentID =
-        document.getElementById("studentID").value.trim();
+        document
+            .getElementById("studentID")
+            .value
+            .trim();
+
 
     const firstName =
-        document.getElementById("firstName").value.trim();
+        document
+            .getElementById("firstName")
+            .value
+            .trim();
+
 
     const lastName =
-        document.getElementById("lastName").value.trim();
+        document
+            .getElementById("lastName")
+            .value
+            .trim();
+
 
     const course =
-        document.getElementById("course").value.trim();
+        document
+            .getElementById("course")
+            .value
+            .trim();
+
 
     const email =
-        document.getElementById("email").value.trim();
+        document
+            .getElementById("email")
+            .value
+            .trim();
+
 
     const yearLevel =
-        document.getElementById("yearLevel").value;
+        document
+            .getElementById("yearLevel")
+            .value;
 
+
+
+    /* =========================
+       VALIDATION
+    ========================= */
 
     if (
         studentID === "" ||
@@ -328,49 +646,116 @@ function updateStudent() {
         );
 
         return;
+
     }
 
 
-    students[editIndex] = {
 
-        studentID: studentID,
+    /* =========================
+       UPDATE OBJECT
+    ========================= */
 
-        firstName: firstName,
+    const student = {
 
-        lastName: lastName,
+        action: "update",
 
-        course: course,
+        originalStudentID:
+            editStudentID,
 
-        email: email,
+        studentID:
+            studentID,
 
-        yearLevel: yearLevel
+        firstName:
+            firstName,
+
+        lastName:
+            lastName,
+
+        course:
+            course,
+
+        email:
+            email,
+
+        yearLevel:
+            yearLevel
 
     };
 
 
-    saveData();
+
+    /* =========================
+       SEND UPDATE
+    ========================= */
+
+    try {
+
+        showMessage(
+            "Updating student...",
+            "success"
+        );
 
 
-    displayStudents();
+        const result =
+            await sendToAppsScript(
+                student
+            );
 
 
-    cancelEdit();
+        if (!result.success) {
+
+            throw new Error(
+                result.message ||
+                "Update failed."
+            );
+
+        }
 
 
-    showMessage(
-        "Student successfully updated.",
-        "success"
-    );
+
+        /* =========================
+           SUCCESS
+        ========================= */
+
+        showMessage(
+            "Student successfully updated.",
+            "success"
+        );
+
+
+        cancelEdit();
+
+
+        await loadStudents();
+
+
+    } catch (error) {
+
+        console.error(
+            "UPDATE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Failed to update student: " +
+            error.message,
+            "error"
+        );
+
+    }
 
 }
-
 
 
 /* =====================================================
    DELETE
 ===================================================== */
 
-function deleteStudent(index) {
+async function deleteStudent(
+    studentID
+) {
+
 
     const confirmDelete =
         confirm(
@@ -379,26 +764,79 @@ function deleteStudent(index) {
 
 
     if (!confirmDelete) {
+
         return;
+
     }
 
 
-    students.splice(index, 1);
+
+    const data = {
+
+        action: "delete",
+
+        studentID:
+            studentID
+
+    };
 
 
-    saveData();
+
+    try {
+
+        showMessage(
+            "Deleting student...",
+            "success"
+        );
 
 
-    displayStudents();
+        const result =
+            await sendToAppsScript(
+                data
+            );
 
 
-    showMessage(
-        "Student successfully deleted.",
-        "success"
-    );
+        if (!result.success) {
+
+            throw new Error(
+                result.message ||
+                "Delete failed."
+            );
+
+        }
+
+
+
+        /* =========================
+           SUCCESS
+        ========================= */
+
+        showMessage(
+            "Student successfully deleted.",
+            "success"
+        );
+
+
+        await loadStudents();
+
+
+    } catch (error) {
+
+        console.error(
+            "DELETE ERROR:",
+            error
+        );
+
+
+        showMessage(
+            "Failed to delete student: " +
+            error.message,
+            "error"
+        );
+
+    }
 
 }
-
 
 
 /* =====================================================
@@ -407,72 +845,85 @@ function deleteStudent(index) {
 
 function searchStudents() {
 
-    const searchValue =
-        document
-            .getElementById("searchInput")
-            .value
-            .toLowerCase();
 
-
-    const filteredStudents =
-        students.filter(student =>
-
-            student.studentID
-                .toLowerCase()
-                .includes(searchValue)
-
-            ||
-
-            student.firstName
-                .toLowerCase()
-                .includes(searchValue)
-
-            ||
-
-            student.lastName
-                .toLowerCase()
-                .includes(searchValue)
-
-            ||
-
-            student.course
-                .toLowerCase()
-                .includes(searchValue)
-
-            ||
-
-            student.email
-                .toLowerCase()
-                .includes(searchValue)
-
-            ||
-
-            student.yearLevel
-                .toLowerCase()
-                .includes(searchValue)
-
+    const searchInput =
+        document.getElementById(
+            "searchInput"
         );
 
 
-    displayStudents(filteredStudents);
+    const searchValue =
+        searchInput.value
+            .trim()
+            .toLowerCase();
 
-}
+
+
+    if (
+        searchValue === ""
+    ) {
+
+        displayStudents();
+
+        return;
+
+    }
 
 
 
-/* =====================================================
-   SAVE DATA
-===================================================== */
+    const filteredStudents =
+        students.filter(
+            function (student) {
 
-function saveData() {
 
-    localStorage.setItem(
-        "students",
-        JSON.stringify(students)
+                return (
+
+                    String(student.studentID)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                    ||
+
+                    String(student.firstName)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                    ||
+
+                    String(student.lastName)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                    ||
+
+                    String(student.course)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                    ||
+
+                    String(student.email)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                    ||
+
+                    String(student.yearLevel)
+                        .toLowerCase()
+                        .includes(searchValue)
+
+                );
+
+            }
+        );
+
+
+
+    displayStudents(
+        filteredStudents
     );
 
 }
-
 
 
 /* =====================================================
@@ -481,20 +932,37 @@ function saveData() {
 
 function clearForm() {
 
-    document.getElementById("studentID").value = "";
 
-    document.getElementById("firstName").value = "";
+    document.getElementById(
+        "studentID"
+    ).value = "";
 
-    document.getElementById("lastName").value = "";
 
-    document.getElementById("course").value = "";
+    document.getElementById(
+        "firstName"
+    ).value = "";
 
-    document.getElementById("email").value = "";
 
-    document.getElementById("yearLevel").value = "";
+    document.getElementById(
+        "lastName"
+    ).value = "";
+
+
+    document.getElementById(
+        "course"
+    ).value = "";
+
+
+    document.getElementById(
+        "email"
+    ).value = "";
+
+
+    document.getElementById(
+        "yearLevel"
+    ).value = "";
 
 }
-
 
 
 /* =====================================================
@@ -503,59 +971,109 @@ function clearForm() {
 
 function cancelEdit() {
 
-    editIndex = -1;
+
+    editStudentID = null;
 
 
     clearForm();
 
 
-    document.getElementById("addBtn")
-        .style.display = "block";
+
+    document.getElementById(
+        "addBtn"
+    ).style.display =
+        "block";
 
 
-    document.getElementById("updateBtn")
-        .style.display = "none";
+    document.getElementById(
+        "updateBtn"
+    ).style.display =
+        "none";
 
 
-    document.getElementById("cancelBtn")
-        .style.display = "none";
+    document.getElementById(
+        "cancelBtn"
+    ).style.display =
+        "none";
 
 }
-
 
 
 /* =====================================================
    MESSAGE
 ===================================================== */
 
-function showMessage(text, type) {
+function showMessage(
+    text,
+    type
+) {
+
 
     const message =
-        document.getElementById("message");
+        document.getElementById(
+            "message"
+        );
 
 
-    message.textContent = text;
+    message.textContent =
+        text;
 
 
     message.className =
         "message " + type;
 
 
-    message.style.display = "block";
-
-
-    setTimeout(() => {
-
-        message.style.display = "none";
-
-    }, 3000);
+    message.style.display =
+        "block";
 
 }
 
 
-
 /* =====================================================
-   INITIAL LOAD
+   HIDE MESSAGE
 ===================================================== */
 
-displayStudents();
+function hideMessage() {
+
+
+    const message =
+        document.getElementById(
+            "message"
+        );
+
+
+    message.style.display =
+        "none";
+
+}
+
+
+/* =====================================================
+   HTML SECURITY
+===================================================== */
+
+function escapeHTML(value) {
+
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+/* =====================================================
+   ATTRIBUTE SECURITY
+===================================================== */
+
+function escapeAttribute(value) {
+
+
+    return String(value)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'");
+
+}
