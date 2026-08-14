@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Student Management System</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>Student Management System</h1>
+
+        <p>
+            Create, view, update and delete student records.
+        </p>
+
+    </div>
+
+
+    <!-- MESSAGE -->
+
+    <div id="message" class="message"></div>
+
+
+    <!-- STUDENT FORM -->
+
+    <div class="form-container">
+
+
+        <div class="form-group">
+
+            <label for="studentID">
+                Student ID
+            </label>
+
+            <input
+                type="text"
+                id="studentID"
+                placeholder="Enter Student ID"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="firstName">
+                First Name
+            </label>
+
+            <input
+                type="text"
+                id="firstName"
+                placeholder="Enter First Name"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="lastName">
+                Last Name
+            </label>
+
+            <input
+                type="text"
+                id="lastName"
+                placeholder="Enter Last Name"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="course">
+                Course
+            </label>
+
+            <input
+                type="text"
+                id="course"
+                placeholder="Enter Course"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="email">
+                Email
+            </label>
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter Email"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="yearLevel">
+                Year Level
+            </label>
+
+            <select id="yearLevel">
+
+                <option value="">
+                    Select Year Level
+                </option>
+
+                <option value="1st Year">
+                    1st Year
+                </option>
+
+                <option value="2nd Year">
+                    2nd Year
+                </option>
+
+                <option value="3rd Year">
+                    3rd Year
+                </option>
+
+                <option value="4th Year">
+                    4th Year
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <!-- BUTTONS -->
+
+        <div class="form-buttons">
+
+            <button
+                id="addBtn"
+                class="add-btn"
+                onclick="addStudent()">
+
+                Add Student
+
+            </button>
+
+
+            <button
+                id="updateBtn"
+                class="update-btn"
+                onclick="updateStudent()">
+
+                Update Student
+
+            </button>
+
+
+            <button
+                id="cancelBtn"
+                class="cancel-btn"
+                onclick="cancelEdit()">
+
+                Cancel
+
+            </button>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- SEARCH -->
+
+    <div class="search-container">
+
+        <input
+            type="text"
+            id="searchInput"
+            placeholder="Search by Student ID, name, course or email..."
+            onkeyup="searchStudents()"
+        >
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div class="table-container">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Student ID</th>
+
+                    <th>First Name</th>
+
+                    <th>Last Name</th>
+
+                    <th>Course</th>
+
+                    <th>Email</th>
+
+                    <th>Year Level</th>
+
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="studentTable">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+</div>
+
+
+<!-- JavaScript -->
+<script src="script.js"></script>
+
+
+</body>
+
+</html>
